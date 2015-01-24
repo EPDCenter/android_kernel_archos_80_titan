@@ -28,12 +28,28 @@
 #ifdef CONFIG_MFD_TPS65910
 #define PMU_POWER_SLEEP RK30_PIN6_PB1	
 extern int platform_device_register(struct platform_device *pdev);
+static struct tps65910 * s_tps65910;
+
+static int tps65910_data_read(u8 index)
+{
+	if(s_tps65910 == 0) return -ENODEV;
+	if(index >= 5) return -EINVAL;
+	return tps65910_reg_read(s_tps65910, index + TPS65910_BCK1);
+}
+
+static int tps65910_data_write(u8 index, u8 value)
+{
+	if(s_tps65910 == 0) return -ENODEV;
+	if(index >= 5) return -EINVAL;
+	return tps65910_reg_write(s_tps65910, index + TPS65910_BCK1, value);
+}
 
 int tps65910_pre_init(struct tps65910 *tps65910){
 
 	int val = 0;
 	int i 	= 0;
 	int err = -1;
+	s_tps65910 = tps65910;
 		
 	printk("%s,line=%d\n", __func__,__LINE__);	
 	//gpio_request(PMU_POWER_SLEEP, "NULL");
@@ -52,7 +68,7 @@ int tps65910_pre_init(struct tps65910 *tps65910){
 		printk(KERN_ERR "Unable to write TPS65910_DEVCTRL2 reg\n");
 		return err;
 	}
-	
+
 	 #if 1
 	/* set PSKIP=0 */
         val = tps65910_reg_read(tps65910, TPS65910_DCDCCTRL);
@@ -191,7 +207,6 @@ int tps65910_pre_init(struct tps65910 *tps65910){
         }
 	
 	val  |= 0xff;
-	val  &= ~(0x07);   //set vdd1 vdd2 vio in pfm mode when in sleep
 	err = tps65910_reg_write(tps65910, TPS65910_SLEEP_KEEP_RES_ON, val);
 	if (err) {
 		printk(KERN_ERR "Unable to read TPS65910 Reg at offset 0x%x= \
@@ -206,7 +221,7 @@ int tps65910_pre_init(struct tps65910 *tps65910){
                 return val;
         }
 	
-	val |= 0x0b;
+	val |= 0x2b;
 	err = tps65910_reg_write(tps65910, TPS65910_SLEEP_SET_LDO_OFF, val);
 	if (err) {
 		printk(KERN_ERR "Unable to read TPS65910 Reg at offset 0x%x= \
@@ -228,23 +243,6 @@ int tps65910_pre_init(struct tps65910 *tps65910){
 	}
 	#endif
 	#endif
-
-	/**********************set arm in pwm ****************/
-	  val = tps65910_reg_read(tps65910, TPS65910_DCDCCTRL);
-        if (val<0) {
-                printk(KERN_ERR "Unable to read TPS65910_DCDCCTRL reg\n");
-                return val;
-        }
-	
-	val &= ~(1<<4);
-	err = tps65910_reg_write(tps65910, TPS65910_DCDCCTRL, val);
-	if (err) {
-		printk(KERN_ERR "Unable to read TPS65910 Reg at offset 0x%x= \
-				\n", TPS65910_VDIG1);
-		return err;
-	}	
-	/************************************************/
-	
 	printk("%s,line=%d\n", __func__,__LINE__);
 	return 0;
 
@@ -257,10 +255,6 @@ int tps65910_post_init(struct tps65910 *tps65910)
 
 	g_pmic_type = PMIC_TYPE_TPS65910;
 	printk("%s:g_pmic_type=%d\n",__func__,g_pmic_type);
-
-	#ifdef CONFIG_RK30_PWM_REGULATOR
-	platform_device_register(&pwm_regulator_device[0]);
-	#endif
 	
 	dcdc = regulator_get(NULL, "vio");	//vcc_io
 	regulator_set_voltage(dcdc, 3000000, 3000000);
@@ -285,17 +279,24 @@ int tps65910_post_init(struct tps65910 *tps65910)
 
 	ldo = regulator_get(NULL, "vaux33");	 //vcc_tp
 	regulator_set_voltage(ldo, 3300000, 3300000);
+
+	if (gpio_request(TOUCH_RESET_PIN, "goodix reset pin") != 0) {
+		gpio_free(TOUCH_RESET_PIN);
+		printk("vaux set error\n");
+	}
+	gpio_direction_output(TOUCH_RESET_PIN, 1);
+	gpio_free(TOUCH_RESET_PIN);
+	mdelay(5);
+	
+	regulator_enable(ldo);
+	mdelay(50);
+	regulator_disable(ldo);
+   	mdelay(50);
 	regulator_enable(ldo);
 	printk("%s set vaux33 vcc_tp=%dmV end\n", __func__, regulator_get_voltage(ldo));
 	regulator_put(ldo);
 	udelay(100);
-
-	ldo = regulator_get(NULL, "vaux33");	 //vcc_tp
-	regulator_disable(ldo);
-	regulator_put(ldo);
-	printk("--------------disable vaux33 regulator----------\n");
-	udelay(100);
-
+	
 	dcdc = regulator_get(NULL, "vdd_cpu");	//vdd_cpu
 	regulator_set_voltage(dcdc, 1200000, 1200000);
 	regulator_enable(dcdc);
@@ -309,14 +310,15 @@ int tps65910_post_init(struct tps65910 *tps65910)
 	printk("%s set vdd2 vcc_ddr=%dmV end\n", __func__, regulator_get_voltage(dcdc));
 	regulator_put(dcdc);
 	udelay(100);
-	#if 0 // honghaishen_test start
+	
 	ldo = regulator_get(NULL, "vdig1");	//vcc18_cif
 	regulator_set_voltage(ldo, 1800000, 1800000);
 	regulator_enable(ldo);
 	printk("%s set vdig1 vcc18_cif=%dmV end\n", __func__, regulator_get_voltage(ldo));
+	regulator_disable(ldo);
 	regulator_put(ldo);
 	udelay(100);
-	#endif // honghaishen_test end
+	
 	dcdc = regulator_get(NULL, "vaux1"); //vcc25_hdmi
 	regulator_set_voltage(dcdc,2500000,2500000);
 	regulator_enable(dcdc); 
@@ -337,14 +339,25 @@ int tps65910_post_init(struct tps65910 *tps65910)
 	printk("%s set vdac vccio_wl=%dmV end\n", __func__, regulator_get_voltage(ldo));
 	regulator_put(ldo);
 	udelay(100);
- #if 0   // honghaishen_test start
+
 	ldo = regulator_get(NULL, "vmmc");  //vcc28_cif
 	regulator_set_voltage(ldo,2800000,2800000);
 	regulator_enable(ldo); 
 	printk("%s set vmmc vcc28_cif=%dmV end\n", __func__, regulator_get_voltage(ldo));
+	regulator_disable(ldo); 
 	regulator_put(ldo);
 	udelay(100);
-#endif  // honghaishen_test end	
+	#if 0
+	#ifdef CONFIG_RK30_PWM_REGULATOR
+	dcdc = regulator_get(NULL, "vdd_core"); // vdd_log
+	regulator_set_voltage(dcdc, 1100000, 1100000);
+	regulator_enable(dcdc);
+	printk("%s set vdd_core=%dmV end\n", __func__, regulator_get_voltage(dcdc));
+	regulator_put(dcdc);
+	udelay(100);
+	#endif
+	#endif
+	
 	printk("%s,line=%d END\n", __func__,__LINE__);
 	
 	return 0;

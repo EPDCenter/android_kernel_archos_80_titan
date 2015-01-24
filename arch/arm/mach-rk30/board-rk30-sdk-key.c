@@ -21,13 +21,13 @@ static struct rk29_keys_button key_button[] = {
 		.gpio	= RK30_PIN6_PA1,
 		.active_low = PRESS_LEV_LOW,
 	},
-	#endif
 	{
 		.desc	= "vol-",
 		.code	= KEY_VOLUMEDOWN,
 		.gpio	= RK30_PIN4_PC5,
 		.active_low = PRESS_LEV_LOW,
 	},
+	#endif
 	#if 0
 	{
 		.desc	= "home",
@@ -55,7 +55,7 @@ static struct rk29_keys_button key_button[] = {
 	},
 	#endif
 	{
-		.desc	= "play",
+		.desc	= "power",
 		.code	= KEY_POWER,
 		.gpio	= RK30_PIN6_PA2,
 		.active_low = PRESS_LEV_LOW,
@@ -63,8 +63,8 @@ static struct rk29_keys_button key_button[] = {
 		.wakeup	= 1,
 	},
 	{
-		.desc	= "vol+",
-		.code	= KEY_VOLUMEUP,
+		.desc	= "vol-",
+		.code	= KEY_VOLUMEDOWN,
 		.adc_value	= 1,
 		.gpio = INVALID_GPIO,
 		.active_low = PRESS_LEV_LOW,
@@ -80,8 +80,8 @@ static struct rk29_keys_button key_button[] = {
 	#endif
 #ifndef RK3000_SDK
 	{
-		.desc	= "menu",
-		.code	= EV_MENU,
+		.desc	= "vol+",
+		.code	= KEY_VOLUMEUP,
 		.adc_value	= 135,
 		.gpio = INVALID_GPIO,
 		.active_low = PRESS_LEV_LOW,
@@ -101,8 +101,8 @@ static struct rk29_keys_button key_button[] = {
 		.active_low = PRESS_LEV_LOW,
 	},
 	{
-		.desc	= "camera",
-		.code	= KEY_CAMERA,
+		.desc	= "menu",
+		.code	= EV_MENU,
 		.adc_value	= 743,
 		.gpio = INVALID_GPIO,
 		.active_low = PRESS_LEV_LOW,

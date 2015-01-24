@@ -27,7 +27,7 @@ obj-$(CONFIG_DDR_FREQ) += ddr_freq.o video_state.o
 obj-$(CONFIG_RK30_I2C_INSRAM) += i2c_sram.o
 CFLAGS_i2c_sram.o += -mthumb
 
-obj-$(CONFIG_MACH_RK3066_SDK) += board-rk30-sdk.o
+obj-$(CONFIG_MACH_RK3066_SDK) += board-rk30-yf.o board-rk30-sdk-key.o yfenv.o yfver.o
 obj-$(CONFIG_MACH_RK30_SDK) += board-rk30-sdk.o
 obj-$(CONFIG_MACH_RK30_PHONE) += board-rk30-phone.o board-rk30-phone-key.o
 obj-$(CONFIG_MACH_RK30_PHONE_PAD) += board-rk30-phonepad.o board-rk30-phonepad-key.o
