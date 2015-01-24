@@ -119,34 +119,6 @@
 #endif
 #endif
 
-#ifdef CONFIG_SENSOR_IIC_ADDR_03
-#if (CONFIG_SENSOR_IIC_ADDR_03 != 0x00)
-#define PMEM_SENSOR_FULL_RESOLUTION_03  CONS(CONFIG_SENSOR_03,_FULL_RESOLUTION)
-
-    #ifdef CONFIG_SENSOR_CIF_INDEX_03
-    #define SENSOR_CIF_BUSID_03             CONS(RK_CAM_PLATFORM_DEV_ID_,CONFIG_SENSOR_CIF_INDEX_03)
-    #else
-    #define SENSOR_CIF_BUSID_03            RK29_CAM_PLATFORM_DEV_ID
-    #endif
-    
-    #if !(PMEM_SENSOR_FULL_RESOLUTION_03)
-    #undef PMEM_SENSOR_FULL_RESOLUTION_03
-    #define PMEM_SENSOR_FULL_RESOLUTION_03  RK_CAM_SUPPORT_RESOLUTION
-    #endif
-    #if (SENSOR_CIF_BUSID_03 == RK_CAM_PLATFORM_DEV_ID_0)
-	   #if (PMEM_SENSOR_FULL_RESOLUTION_CIF_0 < PMEM_SENSOR_FULL_RESOLUTION_03)
-	   #undef PMEM_SENSOR_FULL_RESOLUTION_CIF_0
-	   #define PMEM_SENSOR_FULL_RESOLUTION_CIF_0 PMEM_SENSOR_FULL_RESOLUTION_03
-	   #endif
-    #else
-	   #if (PMEM_SENSOR_FULL_RESOLUTION_CIF_1 < PMEM_SENSOR_FULL_RESOLUTION_03)
-	   #undef PMEM_SENSOR_FULL_RESOLUTION_CIF_1
-	   #define PMEM_SENSOR_FULL_RESOLUTION_CIF_1 PMEM_SENSOR_FULL_RESOLUTION_03
-	   #endif
-    #endif
-#endif
-#endif
-
 #ifdef CONFIG_SENSOR_IIC_ADDR_11
 #if (CONFIG_SENSOR_IIC_ADDR_11 != 0x00)
 #define PMEM_SENSOR_FULL_RESOLUTION_11  CONS(CONFIG_SENSOR_11,_FULL_RESOLUTION)
@@ -269,17 +241,14 @@
     #define PMEM_CAM_NECESSARY PMEM_CAM_NECESSARY_CIF_1
     #define PMEM_CAMIPP_NECESSARY PMEM_CAMIPP_NECESSARY_CIF_1
     #endif
+#else
+    #ifdef CONFIG_ARCH_RK29
+    #warning "Camera driver config two CIF work simultaneity,but rk29 has only one CIF"
+    #endif
+    #define PMEM_CAM_NECESSARY PMEM_CAM_NECESSARY_CIF_0
+    #define PMEM_CAMIPP_NECESSARY PMEM_CAMIPP_NECESSARY_CIF_0    
 #endif
 
-#if (!defined(CONFIG_VIDEO_RKCIF_WORK_SIMUL_OFF) && !defined(CONFIG_VIDEO_RKCIF_WORK_SIMUL_ON))
-    #if PMEM_CAM_NECESSARY_CIF_0
-    #define PMEM_CAM_NECESSARY PMEM_CAM_NECESSARY_CIF_0
-    #define PMEM_CAMIPP_NECESSARY PMEM_CAMIPP_NECESSARY_CIF_0  
-    #else
-    #define PMEM_CAM_NECESSARY PMEM_CAM_NECESSARY_CIF_1
-    #define PMEM_CAMIPP_NECESSARY PMEM_CAMIPP_NECESSARY_CIF_1  
-    #endif
-#endif
 
 #ifdef CONFIG_VIDEO_RK29_CAMMEM_ION
     #undef PMEM_CAM_NECESSARY
@@ -315,11 +284,6 @@ module_param(camera_debug, int, S_IRUGO|S_IWUSR);
 #define SENSOR_NAME_02 STR(CONFIG_SENSOR_02)			/* back camera sensor 2 */
 #define SENSOR_DEVICE_NAME_02  STR(CONS(CONFIG_SENSOR_02, _back_2))
 #endif
-#ifdef CONFIG_SENSOR_03
-#define SENSOR_NAME_03 STR(CONFIG_SENSOR_03)			/* back camera sensor 2 */
-#define SENSOR_DEVICE_NAME_03  STR(CONS(CONFIG_SENSOR_03, _back_3))
-#endif
-
 #ifdef CONFIG_SENSOR_11
 #define SENSOR_NAME_11 STR(CONFIG_SENSOR_11)			/* front camera sensor 1 */
 #define SENSOR_DEVICE_NAME_11  STR(CONS(CONFIG_SENSOR_11, _front_1))
@@ -333,11 +297,7 @@ static int rk_sensor_io_init(void);
 static int rk_sensor_io_deinit(int sensor);
 static int rk_sensor_ioctrl(struct device *dev,enum rk29camera_ioctrl_cmd cmd, int on);
 static int rk_sensor_power(struct device *dev, int on);
-#if (CONFIG_SENSOR_RESET_PIN_0 != INVALID_GPIO) || (CONFIG_SENSOR_RESET_PIN_1 != INVALID_GPIO) \
-    || (CONFIG_SENSOR_RESET_PIN_01 != INVALID_GPIO) || (CONFIG_SENSOR_RESET_PIN_02 != INVALID_GPIO) \
-    || (CONFIG_SENSOR_RESET_PIN_11 != INVALID_GPIO) || (CONFIG_SENSOR_RESET_PIN_12 != INVALID_GPIO)
 static int rk_sensor_reset(struct device *dev);
-#endif
 static int rk_sensor_powerdown(struct device *dev, int on);
 
 static struct rk29camera_platform_data rk_camera_platform_data = {
@@ -348,47 +308,21 @@ static struct rk29camera_platform_data rk_camera_platform_data = {
     
     .gpio_res = {
         {
-    #if CONFIG_SENSOR_IIC_ADDR_0            
             .gpio_reset = CONFIG_SENSOR_RESET_PIN_0,
             .gpio_power = CONFIG_SENSOR_POWER_PIN_0,
             .gpio_powerdown = CONFIG_SENSOR_POWERDN_PIN_0,
             .gpio_flash = CONFIG_SENSOR_FALSH_PIN_0,
-            .gpio_torch = CONFIG_SENSOR_TORCH_PIN_0,
-            .gpio_flag = (CONFIG_SENSOR_POWERACTIVE_LEVEL_0|CONFIG_SENSOR_RESETACTIVE_LEVEL_0
-            |CONFIG_SENSOR_POWERDNACTIVE_LEVEL_0|CONFIG_SENSOR_FLASHACTIVE_LEVEL_0|CONFIG_SENSOR_TORCHACTIVE_LEVEL_0),
+            .gpio_flag = (CONFIG_SENSOR_POWERACTIVE_LEVEL_0|CONFIG_SENSOR_RESETACTIVE_LEVEL_0|CONFIG_SENSOR_POWERDNACTIVE_LEVEL_0|CONFIG_SENSOR_FLASHACTIVE_LEVEL_0),
             .gpio_init = 0,            
             .dev_name = SENSOR_DEVICE_NAME_0,
-   #else
-            .gpio_reset = INVALID_GPIO,
-            .gpio_power = INVALID_GPIO,
-            .gpio_powerdown = INVALID_GPIO,
-            .gpio_flash = INVALID_GPIO,
-            .gpio_torch = INVALID_GPIO,
-            .gpio_flag = 0,
-            .gpio_init = 0,            
-            .dev_name = NULL,
-   #endif
         }, {
-   #if CONFIG_SENSOR_IIC_ADDR_1  
             .gpio_reset = CONFIG_SENSOR_RESET_PIN_1,
             .gpio_power = CONFIG_SENSOR_POWER_PIN_1,
             .gpio_powerdown = CONFIG_SENSOR_POWERDN_PIN_1,
             .gpio_flash = CONFIG_SENSOR_FALSH_PIN_1,
-            .gpio_torch = CONFIG_SENSOR_TORCH_PIN_1,
-            .gpio_flag = (CONFIG_SENSOR_POWERACTIVE_LEVEL_1|CONFIG_SENSOR_RESETACTIVE_LEVEL_1
-            |CONFIG_SENSOR_POWERDNACTIVE_LEVEL_1|CONFIG_SENSOR_FLASHACTIVE_LEVEL_1|CONFIG_SENSOR_TORCHACTIVE_LEVEL_1),
+            .gpio_flag = (CONFIG_SENSOR_POWERACTIVE_LEVEL_1|CONFIG_SENSOR_RESETACTIVE_LEVEL_1|CONFIG_SENSOR_POWERDNACTIVE_LEVEL_1|CONFIG_SENSOR_FLASHACTIVE_LEVEL_1),
             .gpio_init = 0,
             .dev_name = SENSOR_DEVICE_NAME_1,
-   #else
-            .gpio_reset = INVALID_GPIO,
-            .gpio_power = INVALID_GPIO,
-            .gpio_powerdown = INVALID_GPIO,
-            .gpio_flash = INVALID_GPIO,
-            .gpio_torch = INVALID_GPIO,
-            .gpio_flag = 0,
-            .gpio_init = 0,            
-            .dev_name = NULL,
-   #endif
         }, 
         #ifdef CONFIG_SENSOR_01
         {
@@ -397,9 +331,7 @@ static struct rk29camera_platform_data rk_camera_platform_data = {
             .gpio_power = CONFIG_SENSOR_POWER_PIN_01,
             .gpio_powerdown = CONFIG_SENSOR_POWERDN_PIN_01,
             .gpio_flash = CONFIG_SENSOR_FALSH_PIN_01,
-            .gpio_torch = CONFIG_SENSOR_TORCH_PIN_01,
-            .gpio_flag = (CONFIG_SENSOR_POWERACTIVE_LEVEL_01|CONFIG_SENSOR_RESETACTIVE_LEVEL_01
-            |CONFIG_SENSOR_POWERDNACTIVE_LEVEL_01|CONFIG_SENSOR_FLASHACTIVE_LEVEL_01|CONFIG_SENSOR_TORCHACTIVE_LEVEL_01),
+            .gpio_flag = (CONFIG_SENSOR_POWERACTIVE_LEVEL_01|CONFIG_SENSOR_RESETACTIVE_LEVEL_01|CONFIG_SENSOR_POWERDNACTIVE_LEVEL_01|CONFIG_SENSOR_FLASHACTIVE_LEVEL_01),
             .gpio_init = 0,            
             .dev_name = SENSOR_DEVICE_NAME_01,
         #else
@@ -407,7 +339,6 @@ static struct rk29camera_platform_data rk_camera_platform_data = {
             .gpio_power = INVALID_GPIO,
             .gpio_powerdown = INVALID_GPIO,
             .gpio_flash = INVALID_GPIO,
-            .gpio_torch = INVALID_GPIO,
             .gpio_flag = 0,
             .gpio_init = 0,            
             .dev_name = NULL,
@@ -421,9 +352,7 @@ static struct rk29camera_platform_data rk_camera_platform_data = {
             .gpio_power = CONFIG_SENSOR_POWER_PIN_02,
             .gpio_powerdown = CONFIG_SENSOR_POWERDN_PIN_02,
             .gpio_flash = CONFIG_SENSOR_FALSH_PIN_02,
-            .gpio_torch = CONFIG_SENSOR_TORCH_PIN_02,
-            .gpio_flag = (CONFIG_SENSOR_POWERACTIVE_LEVEL_02|CONFIG_SENSOR_RESETACTIVE_LEVEL_02
-            |CONFIG_SENSOR_POWERDNACTIVE_LEVEL_02|CONFIG_SENSOR_FLASHACTIVE_LEVEL_02|CONFIG_SENSOR_TORCHACTIVE_LEVEL_02),
+            .gpio_flag = (CONFIG_SENSOR_POWERACTIVE_LEVEL_02|CONFIG_SENSOR_RESETACTIVE_LEVEL_02|CONFIG_SENSOR_POWERDNACTIVE_LEVEL_02|CONFIG_SENSOR_FLASHACTIVE_LEVEL_02),
             .gpio_init = 0,            
             .dev_name = SENSOR_DEVICE_NAME_02, 
         #else
@@ -431,38 +360,12 @@ static struct rk29camera_platform_data rk_camera_platform_data = {
             .gpio_power = INVALID_GPIO,
             .gpio_powerdown = INVALID_GPIO,
             .gpio_flash = INVALID_GPIO,
-            .gpio_torch = INVALID_GPIO,
             .gpio_flag = 0,
             .gpio_init = 0,            
             .dev_name = NULL,
         #endif        
         },
         #endif
-	  #ifdef CONFIG_SENSOR_03
-        {
-        #if CONFIG_SENSOR_IIC_ADDR_03
-            .gpio_reset = CONFIG_SENSOR_RESET_PIN_03,
-            .gpio_power = CONFIG_SENSOR_POWER_PIN_03,
-            .gpio_powerdown = CONFIG_SENSOR_POWERDN_PIN_03,
-            .gpio_flash = CONFIG_SENSOR_FALSH_PIN_03,
-            .gpio_torch = CONFIG_SENSOR_TORCH_PIN_03,
-            .gpio_flag = (CONFIG_SENSOR_POWERACTIVE_LEVEL_03|CONFIG_SENSOR_RESETACTIVE_LEVEL_03
-            |CONFIG_SENSOR_POWERDNACTIVE_LEVEL_03|CONFIG_SENSOR_FLASHACTIVE_LEVEL_03|CONFIG_SENSOR_TORCHACTIVE_LEVEL_03),
-            .gpio_init = 0,            
-            .dev_name = SENSOR_DEVICE_NAME_03, 
-        #else
-            .gpio_reset = INVALID_GPIO,
-            .gpio_power = INVALID_GPIO,
-            .gpio_powerdown = INVALID_GPIO,
-            .gpio_flash = INVALID_GPIO,
-            .gpio_torch = INVALID_GPIO,
-            .gpio_flag = 0,
-            .gpio_init = 0,            
-            .dev_name = NULL,
-        #endif        
-        },
-        #endif
-
         #ifdef CONFIG_SENSOR_11
         {
         #if CONFIG_SENSOR_IIC_ADDR_11
@@ -470,9 +373,7 @@ static struct rk29camera_platform_data rk_camera_platform_data = {
             .gpio_power = CONFIG_SENSOR_POWER_PIN_11,
             .gpio_powerdown = CONFIG_SENSOR_POWERDN_PIN_11,
             .gpio_flash = CONFIG_SENSOR_FALSH_PIN_11,
-            .gpio_torch = CONFIG_SENSOR_TORCH_PIN_11,
-            .gpio_flag = (CONFIG_SENSOR_POWERACTIVE_LEVEL_11|CONFIG_SENSOR_RESETACTIVE_LEVEL_11
-            |CONFIG_SENSOR_POWERDNACTIVE_LEVEL_11|CONFIG_SENSOR_FLASHACTIVE_LEVEL_11|CONFIG_SENSOR_TORCHACTIVE_LEVEL_11),
+            .gpio_flag = (CONFIG_SENSOR_POWERACTIVE_LEVEL_11|CONFIG_SENSOR_RESETACTIVE_LEVEL_11|CONFIG_SENSOR_POWERDNACTIVE_LEVEL_11|CONFIG_SENSOR_FLASHACTIVE_LEVEL_11),
             .gpio_init = 0,
             .dev_name = SENSOR_DEVICE_NAME_11,
         #else
@@ -480,7 +381,6 @@ static struct rk29camera_platform_data rk_camera_platform_data = {
             .gpio_power = INVALID_GPIO,
             .gpio_powerdown = INVALID_GPIO,
             .gpio_flash = INVALID_GPIO,
-            .gpio_torch = INVALID_GPIO,
             .gpio_flag = 0,
             .gpio_init = 0,            
             .dev_name = NULL,
@@ -494,9 +394,7 @@ static struct rk29camera_platform_data rk_camera_platform_data = {
             .gpio_power = CONFIG_SENSOR_POWER_PIN_12,
             .gpio_powerdown = CONFIG_SENSOR_POWERDN_PIN_12,
             .gpio_flash = CONFIG_SENSOR_FALSH_PIN_12,
-            .gpio_torch = CONFIG_SENSOR_TORCH_PIN_12,
-            .gpio_flag = (CONFIG_SENSOR_POWERACTIVE_LEVEL_12|CONFIG_SENSOR_RESETACTIVE_LEVEL_12
-            |CONFIG_SENSOR_POWERDNACTIVE_LEVEL_12|CONFIG_SENSOR_FLASHACTIVE_LEVEL_12|CONFIG_SENSOR_TORCHACTIVE_LEVEL_12),
+            .gpio_flag = (CONFIG_SENSOR_POWERACTIVE_LEVEL_12|CONFIG_SENSOR_RESETACTIVE_LEVEL_12|CONFIG_SENSOR_POWERDNACTIVE_LEVEL_12|CONFIG_SENSOR_FLASHACTIVE_LEVEL_12),
             .gpio_init = 0,
             .dev_name = SENSOR_DEVICE_NAME_12,
         #else
@@ -504,7 +402,6 @@ static struct rk29camera_platform_data rk_camera_platform_data = {
             .gpio_power = INVALID_GPIO,
             .gpio_powerdown = INVALID_GPIO,
             .gpio_flash = INVALID_GPIO,
-            .gpio_torch = INVALID_GPIO,
             .gpio_flag = 0,
             .gpio_init = 0,            
             .dev_name = NULL,
@@ -548,16 +445,6 @@ static struct rk29camera_platform_data rk_camera_platform_data = {
 	        .dev_name = NULL,
             .orientation = 0x00, 
         #endif
-	 #ifdef CONFIG_SENSOR_03
-	    },{
-	        .dev_name = SENSOR_DEVICE_NAME_03,
-            .orientation = CONFIG_SENSOR_ORIENTATION_03, 
-        #else
-        },{
-	        .dev_name = NULL,
-            .orientation = 0x00, 
-        #endif
-
         
         #ifdef CONFIG_SENSOR_11 
         },{
@@ -660,7 +547,7 @@ static struct rk29camera_platform_data rk_camera_platform_data = {
                 .bus_id= RK29_CAM_PLATFORM_DEV_ID,
                 #endif
             	.power		= rk_sensor_power,
-                #if (CONFIG_SENSOR_RESET_PIN_01 != INVALID_GPIO)
+                #if (CONFIG_SENSOR_RESET_PIN_1 != INVALID_GPIO)
             	.reset		= rk_sensor_reset,
                 #endif	  
             	.powerdown	= rk_sensor_powerdown,
@@ -693,7 +580,7 @@ static struct rk29camera_platform_data rk_camera_platform_data = {
                 .bus_id= RK29_CAM_PLATFORM_DEV_ID,
                 #endif
             	.power		= rk_sensor_power,
-                #if (CONFIG_SENSOR_RESET_PIN_02 != INVALID_GPIO)
+                #if (CONFIG_SENSOR_RESET_PIN_1 != INVALID_GPIO)
             	.reset		= rk_sensor_reset,
                 #endif	  
             	.powerdown	= rk_sensor_powerdown,
@@ -713,40 +600,6 @@ static struct rk29camera_platform_data rk_camera_platform_data = {
         #endif
 	    },
         #endif
-	        #ifdef CONFIG_SENSOR_03 
-        {
-	    #if (CONFIG_SENSOR_IIC_ADDR_03 != 0x00)
-            .i2c_cam_info = {
-                I2C_BOARD_INFO(SENSOR_NAME_03, CONFIG_SENSOR_IIC_ADDR_03>>1)
-            },
-            .link_info = {
-            	#ifdef SENSOR_CIF_BUSID_03
-            	.bus_id= SENSOR_CIF_BUSID_03,
-            	#else
-                .bus_id= RK29_CAM_PLATFORM_DEV_ID,
-                #endif
-            	.power		= rk_sensor_power,
-                #if (CONFIG_SENSOR_RESET_PIN_03 != INVALID_GPIO)
-            	.reset		= rk_sensor_reset,
-                #endif	  
-            	.powerdown	= rk_sensor_powerdown,
-            	//.board_info = &rk_i2c_cam_info_0[0],
-            	
-            	.i2c_adapter_id = CONFIG_SENSOR_IIC_ADAPTER_ID_03,
-            	.module_name	= SENSOR_NAME_03,
-            },
-            .device_info = {
-            	.name	= "soc-camera-pdrv",
-            	//.id = 1,
-            	.dev	= {
-            		.init_name = SENSOR_DEVICE_NAME_03,
-            		//.platform_data = &rk_iclink_0,
-            	}
-            }
-        #endif
-	    },
-        #endif
-		
         #ifdef CONFIG_SENSOR_11
         {	    
         #if (CONFIG_SENSOR_IIC_ADDR_11 != 0x00)
@@ -760,7 +613,7 @@ static struct rk29camera_platform_data rk_camera_platform_data = {
                 .bus_id= RK29_CAM_PLATFORM_DEV_ID,
                 #endif
             	.power		= rk_sensor_power,
-                #if (CONFIG_SENSOR_RESET_PIN_11 != INVALID_GPIO)
+                #if (CONFIG_SENSOR_RESET_PIN_1 != INVALID_GPIO)
             	.reset		= rk_sensor_reset,
                 #endif	  
             	.powerdown	= rk_sensor_powerdown,
@@ -793,7 +646,7 @@ static struct rk29camera_platform_data rk_camera_platform_data = {
                 .bus_id= RK29_CAM_PLATFORM_DEV_ID,
                 #endif
             	.power		= rk_sensor_power,
-                #if (CONFIG_SENSOR_RESET_PIN_12 != INVALID_GPIO)
+                #if (CONFIG_SENSOR_RESET_PIN_1 != INVALID_GPIO)
             	.reset		= rk_sensor_reset,
                 #endif	  
             	.powerdown	= rk_sensor_powerdown,
@@ -904,7 +757,6 @@ static int sensor_flash_default_cb (struct rk29camera_gpio_res *res, int on)
     int camera_flash = res->gpio_flash;
     int camera_ioflag = res->gpio_flag;
     int camera_io_init = res->gpio_init;  
-    int camera_torch = res->gpio_torch;
     int ret = 0;    
 
     if (camera_flash != INVALID_GPIO) {
@@ -925,18 +777,12 @@ static int sensor_flash_default_cb (struct rk29camera_gpio_res *res, int on)
 	        	    break;
                 }
 
-                case Flash_Torch_On:
-                {
-                    gpio_set_value(camera_torch, ((camera_ioflag&RK29_CAM_TORCHACTIVE_MASK)>>RK29_CAM_TORCHACTIVE_BITPOS));
-	        	    dprintk("%s..%s..camera_torch=%d ..PinLevel = %x \n",__FUNCTION__,res->dev_name,camera_torch, ((camera_ioflag&RK29_CAM_TORCHACTIVE_MASK)>>RK29_CAM_TORCHACTIVE_BITPOS));
-	        	    break;
-                }
-		case Flash_Torch_Off:
-                {
-                     gpio_set_value(camera_torch,(((~camera_ioflag)&RK29_CAM_TORCHACTIVE_MASK)>>RK29_CAM_TORCHACTIVE_BITPOS));
-        		    dprintk("\n%s..%s..camera_torch= %d..PinLevel = %x   \n",__FUNCTION__,res->dev_name, camera_torch, (((~camera_ioflag)&RK29_CAM_TORCHACTIVE_MASK)>>RK29_CAM_TORCHACTIVE_BITPOS)); 
-        		    break;
-                }
+                //case Flash_Torch:
+                //{
+                    //gpio_set_value(camera_flash, ((camera_ioflag&RK29_CAM_FLASHACTIVE_MASK)>>RK29_CAM_FLASHACTIVE_BITPOS));
+	        	    //dprintk("%s..%s..FlashPin=%d ..PinLevel = %x \n",__FUNCTION__,res->dev_name,camera_flash, ((camera_ioflag&RK29_CAM_FLASHACTIVE_MASK)>>RK29_CAM_FLASHACTIVE_BITPOS));
+	        	    //break;
+                //}
 
                 default:
                 {
@@ -1046,32 +892,9 @@ static void rk29_sensor_fps_get(int idx, unsigned int *val, int w, int h)
             break;
         }
         #endif
-        #ifdef CONFIG_SENSOR_03
-        case 4:
-        {
-            if ((w==176) && (h==144)) {
-                *val = CONFIG_SENSOR_QCIF_FPS_FIXED_03;
-            #ifdef CONFIG_SENSOR_240X160_FPS_FIXED_03
-            } else if ((w==240) && (h==160)) {
-                *val = CONFIG_SENSOR_240X160_FPS_FIXED_03;
-            #endif
-            } else if ((w==320) && (h==240)) {
-                *val = CONFIG_SENSOR_QVGA_FPS_FIXED_03;
-            } else if ((w==352) && (h==288)) {
-                *val = CONFIG_SENSOR_CIF_FPS_FIXED_03;
-            } else if ((w==640) && (h==480)) {
-                *val = CONFIG_SENSOR_VGA_FPS_FIXED_03;
-            } else if ((w==720) && (h==480)) {
-                *val = CONFIG_SENSOR_480P_FPS_FIXED_03;
-            } else if ((w==1280) && (h==720)) {
-                *val = CONFIG_SENSOR_720P_FPS_FIXED_03;
-            }
-            break;
-        }
-        #endif
-
+        
         #ifdef CONFIG_SENSOR_11
-        case 5:
+        case 4:
         {
             if ((w==176) && (h==144)) {
                 *val = CONFIG_SENSOR_QCIF_FPS_FIXED_11;
@@ -1094,7 +917,7 @@ static void rk29_sensor_fps_get(int idx, unsigned int *val, int w, int h)
         }
         #endif
         #ifdef CONFIG_SENSOR_12
-        case 6:
+        case 5:
         {
             if ((w==176) && (h==144)) {
                 *val = CONFIG_SENSOR_QCIF_FPS_FIXED_12;
@@ -1126,7 +949,6 @@ static int rk_sensor_io_init(void)
     int ret = 0, i,j;
     unsigned int camera_reset = INVALID_GPIO, camera_power = INVALID_GPIO;
 	unsigned int camera_powerdown = INVALID_GPIO, camera_flash = INVALID_GPIO;
-	unsigned int camera_torch=INVALID_GPIO;
 	unsigned int camera_ioflag;
 	static bool is_init = false;
 	struct rk29camera_platform_data* plat_data = &rk_camera_platform_data;
@@ -1153,7 +975,6 @@ static int rk_sensor_io_init(void)
 		camera_power = plat_data->gpio_res[i].gpio_power;
 		camera_powerdown = plat_data->gpio_res[i].gpio_powerdown;
 		camera_flash = plat_data->gpio_res[i].gpio_flash;
-		camera_torch = plat_data->gpio_res[i].gpio_torch;
 		camera_ioflag = plat_data->gpio_res[i].gpio_flag;
 		plat_data->gpio_res[i].gpio_init = 0;
 
@@ -1194,11 +1015,10 @@ static int rk_sensor_io_init(void)
                 if (i==j) {
                     printk(KERN_ERR"rk_cam_io: %s..%s..reset pin(%d) init failed\n",__FUNCTION__,plat_data->gpio_res[i].dev_name,camera_reset);
                     goto sensor_io_init_erro;
-                }else{
+                }
                 
                 printk("%s..%s..reset pin(%d) init failed\n",__FUNCTION__,plat_data->gpio_res[i].dev_name,camera_reset);
-                //goto sensor_io_init_erro;
-				}
+                goto sensor_io_init_erro;
             }
 
             if (rk_camera_platform_data.iomux(camera_reset) < 0) {
@@ -1225,10 +1045,9 @@ static int rk_sensor_io_init(void)
                 if (i==j) {
                     printk(KERN_ERR"rk_cam_io: %s..%s..powerdown pin(%d) init failed\n",__FUNCTION__,plat_data->gpio_res[i].dev_name,camera_powerdown);
                     goto sensor_io_init_erro;
-                }else{
+                }
                 printk("%s..%s..powerdown pin(%d) init failed\n",__FUNCTION__,plat_data->gpio_res[i].dev_name,camera_powerdown);
-                //goto sensor_io_init_erro;
-				}
+                goto sensor_io_init_erro;
             }
 
             if (rk_camera_platform_data.iomux(camera_powerdown) < 0) {
@@ -1255,9 +1074,9 @@ static int rk_sensor_io_init(void)
                 if (i==j) {
                     printk(KERN_ERR"rk_cam_io: %s..%s..flash pin(%d) init failed\n",__FUNCTION__,plat_data->gpio_res[i].dev_name,camera_flash);
                     goto sensor_io_init_erro;
-                }else{
+                }
                 printk("%s..%s..flash pin(%d) init failed\n",__FUNCTION__,plat_data->gpio_res[i].dev_name,camera_flash);
-				}
+				goto sensor_io_init_erro;
             }
 
             if (rk_camera_platform_data.iomux(camera_flash) < 0) {
@@ -1269,34 +1088,6 @@ static int rk_sensor_io_init(void)
             gpio_direction_output(camera_flash, ((~camera_ioflag&RK29_CAM_FLASHACTIVE_MASK)>>RK29_CAM_FLASHACTIVE_BITPOS));
 
 			dprintk("%s....flash pin(%d) init success(0x%x) \n",__FUNCTION__,camera_flash,((camera_ioflag&RK29_CAM_FLASHACTIVE_MASK)>>RK29_CAM_FLASHACTIVE_BITPOS));
-
-        }  
-
-	if (camera_torch != INVALID_GPIO) {
-            ret = gpio_request(camera_torch, "camera torch");
-            if (ret) {
-                for (j=0; j<i; j++) {
-                    if (camera_torch == plat_data->gpio_res[j].gpio_flash) {                        
-                        break;
-                    }
-                }
-                if (i==j) {
-                    printk(KERN_ERR"rk_cam_io: %s..%s..torch pin(%d) init failed\n",__FUNCTION__,plat_data->gpio_res[i].dev_name,camera_torch);
-                    goto sensor_io_init_erro;
-                }else{
-                printk("%s..%s..torch pin(%d) init failed\n",__FUNCTION__,plat_data->gpio_res[i].dev_name,camera_torch);
-				}
-            }
-
-            if (rk_camera_platform_data.iomux(camera_torch) < 0) {
-                printk(KERN_ERR "rk_cam_io: %s..%s..torch pin(%d) iomux init failed\n",__FUNCTION__,plat_data->gpio_res[i].dev_name,camera_torch);                
-            }
-            
-			plat_data->gpio_res[i].gpio_init |= RK29_CAM_TORCHACTIVE_MASK;
-            gpio_set_value(camera_torch, ((~camera_ioflag&RK29_CAM_TORCHACTIVE_MASK)>>RK29_CAM_TORCHACTIVE_BITPOS));    /* falsh off */
-            gpio_direction_output(camera_torch, ((~camera_ioflag&RK29_CAM_TORCHACTIVE_MASK)>>RK29_CAM_TORCHACTIVE_BITPOS));
-
-			dprintk("%s....torch pin(%d) init success(0x%x) \n",__FUNCTION__,camera_torch,((camera_ioflag&RK29_CAM_TORCHACTIVE_MASK)>>RK29_CAM_TORCHACTIVE_BITPOS));
 
         }  
 
@@ -1346,14 +1137,13 @@ sensor_io_init_erro:
 static int rk_sensor_io_deinit(int sensor)
 {
     unsigned int camera_reset = INVALID_GPIO, camera_power = INVALID_GPIO;
-	unsigned int camera_powerdown = INVALID_GPIO, camera_flash = INVALID_GPIO, camera_torch = INVALID_GPIO;
+	unsigned int camera_powerdown = INVALID_GPIO, camera_flash = INVALID_GPIO;
 	struct rk29camera_platform_data* plat_data = &rk_camera_platform_data;
     
     camera_reset = plat_data->gpio_res[sensor].gpio_reset;
     camera_power = plat_data->gpio_res[sensor].gpio_power;
 	camera_powerdown = plat_data->gpio_res[sensor].gpio_powerdown;
     camera_flash = plat_data->gpio_res[sensor].gpio_flash;
-	camera_torch = plat_data->gpio_res[sensor].gpio_torch;
 
 	if (plat_data->gpio_res[sensor].gpio_init & RK29_CAM_POWERACTIVE_MASK) {
 	    if (camera_power != INVALID_GPIO) {
@@ -1380,12 +1170,6 @@ static int rk_sensor_io_deinit(int sensor)
 	    if (camera_flash != INVALID_GPIO)  {
 	        gpio_direction_input(camera_flash);
 	        gpio_free(camera_flash);
-	    }
-	}
-	if (plat_data->gpio_res[sensor].gpio_init & RK29_CAM_TORCHACTIVE_MASK) {
-	    if (camera_torch!= INVALID_GPIO)  {
-	        gpio_direction_input(camera_torch);
-	        gpio_free(camera_torch);
 	    }
 	}
 	plat_data->gpio_res[sensor].gpio_init = 0;
@@ -1472,9 +1256,7 @@ static int rk_sensor_power(struct device *dev, int on)
 	rk_sensor_ioctrl(dev,Cam_Power,on);
     return 0;
 }
-#if (CONFIG_SENSOR_RESET_PIN_0 != INVALID_GPIO) || (CONFIG_SENSOR_RESET_PIN_1 != INVALID_GPIO) \
-    || (CONFIG_SENSOR_RESET_PIN_01 != INVALID_GPIO) || (CONFIG_SENSOR_RESET_PIN_02 != INVALID_GPIO) \
-    || (CONFIG_SENSOR_RESET_PIN_11 != INVALID_GPIO) || (CONFIG_SENSOR_RESET_PIN_12 != INVALID_GPIO)
+#if (CONFIG_SENSOR_RESET_PIN_0 != INVALID_GPIO) || (CONFIG_SENSOR_RESET_PIN_1 != INVALID_GPIO)
 static int rk_sensor_reset(struct device *dev)
 {
 	rk_sensor_ioctrl(dev,Cam_Reset,1);
@@ -1487,7 +1269,8 @@ static int rk_sensor_powerdown(struct device *dev, int on)
 {
 	return rk_sensor_ioctrl(dev,Cam_PowerDown,on);
 }
-#if ((defined PMEM_CAM_NECESSARY)&&(defined CONFIG_VIDEO_RK29_CAMMEM_PMEM))
+
+#ifdef PMEM_CAM_NECESSARY
 static struct android_pmem_platform_data android_pmem_cam_pdata = {
 	.name		= "pmem_cam",
 	.start		= PMEM_CAM_BASE,
